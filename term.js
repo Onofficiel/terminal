@@ -15,6 +15,22 @@ let term = {
         return;
         //<
     },
+    generateCmdURL: (cmdsArr) => {
+        let hash = []
+        try {
+            for (let i = 0; i < cmdsArr.length; i++) {
+                let args = cmdsArr[i];
+                let cmd = args[0];
+                args.shift();
+    
+                hash.push([cmd, ...args]);
+            }
+        } catch (e) {
+            return "Error in the syntax.";
+        }
+        
+        return location.protocol + '//' + location.host + location.pathname + "#" + encodeURI(JSON.stringify(hash));
+    },
     cmdsList: [
         {
             name: "help",
@@ -316,7 +332,7 @@ function handleCommand(command) {
 
 const showCmdInTerm = (cmd, ...args) => {
     let text = document.createElement("div")
-    text.innerHTML = term.execCmd(cmd, args);
+    text.innerHTML = term.execCmd(cmd, ...args);
 
     history.appendChild(text);
 }
@@ -374,6 +390,14 @@ showCmdInTerm("echo", "Welcome to the term, " + settings.name + ". Type \"help\"
 
 (() => {
     let url = new URL(location.href);
-    if (url.hash === "#fullscreen")
-        term.execCmd("$fullscreen", "true");
+    if (url.hash) {
+        let hash = JSON.parse(decodeURI(url.hash.substring(1)));
+        for (let i = 0; i < hash.length; i++) {
+            let args = hash[i];
+            let cmd = args[0];
+            args.shift();
+            
+            showCmdInTerm(cmd, ...args);
+        }
+    }
 })();

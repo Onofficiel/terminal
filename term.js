@@ -193,7 +193,6 @@ let term = {
             name: "set",
             description: "Configurate a value of the \"settings\" object",
             structure: ["key", "value"],
-            prefix: "$",
             exec: (args) => {
                 settings[args[0]] = args[1];
 
@@ -206,9 +205,8 @@ let term = {
             name: "get",
             description: "Get a value of the \"settings\" object",
             structure: ["key"],
-            prefix: "$",
             exec: (args) => {
-                return args[0] + " is set to " + settings[args[0]] + ".";
+                return args[0] + " is " + settings[args[0]] + ".";
             }
         },
         {
@@ -229,6 +227,7 @@ let settings = {
     cmdPrefix: true,
     name: "user",
     hostname: (navigator.userAgentData.brands[0].brand || navigator.appCodeName).toLowerCase(),
+    version: 0.3,
     inputPrefix: function () {
         return this.name + "@" + this.hostname + ": " + this.prefix;
     }

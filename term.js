@@ -3,14 +3,28 @@ let term = {
         // Command Check
         for (let i = 0; i < term.cmdsList.length; i++) {
             const listCmd = term.cmdsList[i];
-            if (cmd === listCmd.name) {
+            if (settings.cmdPrefix === true) {
+                if (listCmd.prefix && cmd === listCmd.prefix + listCmd.name) {
+                    try {
+                        return listCmd.exec(args);
+                    } catch (e) {
+                        return listCmd.name + ": " + e;
+                    }
+                } else if ((!listCmd.prefix) && cmd === listCmd.name) {
+                    try {
+                        return listCmd.exec(args);
+                    } catch (e) {
+                        return listCmd.name + ": " + e;
+                    }
+                }
+            } else if (settings.cmdPrefix !== true && cmd === listCmd.name) {
                 try {
                     return listCmd.exec(args);
                 } catch (e) {
                     return listCmd.name + ": " + e;
                 }
-            };
-        };
+            }
+        }
         if (cmd) return "Incorrect Command: Type \"help\" for commands infos.";
         return;
         //<
@@ -22,13 +36,13 @@ let term = {
                 let args = cmdsArr[i];
                 let cmd = args[0];
                 args.shift();
-    
+
                 hash.push([cmd, ...args]);
             }
         } catch (e) {
             return "Error in the syntax.";
         }
-        
+
         return location.protocol + '//' + location.host + location.pathname + "#" + encodeURI(JSON.stringify(hash));
     },
     cmdsList: [
@@ -39,31 +53,44 @@ let term = {
             exec: (args) => {
 
                 const getStructure = (cmd) => {
+                    let newCmd = cmd.name;
+                    if (settings.cmdPrefix === true && cmd.prefix)
+                        newCmd = cmd.prefix + cmd.name;
+
                     if (!cmd.structure)
-                        return cmd.name;
-                    
+                        return newCmd;
+
                     const stc = cmd.structure;
                     const structure = [];
                     for (let i = 0; i < stc.length; i++) {
                         structure.push("[" + stc[i] + "]");
                     }
-                    return cmd.name + " " + structure.join(" ");
+                    return newCmd + " " + structure.join(" ");
                 }
 
                 if (args[0]) {
                     for (let i = 0; i < term.cmdsList.length; i++) {
                         const cmd = term.cmdsList[i];
-                        if (args[0] === cmd.name)
+                        if (args[0] === cmd.prefix + cmd.name || args[0] === cmd.name)
                             return cmd.name + ": " + getStructure(cmd) + " : " + cmd.description + ".";
                     }
-                    return "This command doesn't exist.";
+                    return args[0] + " was not found in the command list.";
                 }
 
                 let helpList = "";
 
                 for (let i = 0; i < term.cmdsList.length; i++) {
                     const listCmd = term.cmdsList[i];
-                    helpList += listCmd.name + " : " + listCmd.description;
+                    if (settings.cmdPrefix === true) {
+                        if (listCmd.prefix) {
+                            helpList += listCmd.prefix + listCmd.name + ": " + listCmd.description;
+                        } else if ((!listCmd.prefix)) {
+                            helpList += listCmd.name + ": " + listCmd.description;
+                        }
+                    } else if (settings.cmdPrefix !== true) {
+                        helpList += listCmd.name + ": " + listCmd.description;
+                    }
+
                     if (i < (term.cmdsList.length - 1)) {
                         helpList += ",\n";
                     } else {
@@ -99,9 +126,10 @@ let term = {
             }
         },
         {
-            name: "$fullscreen",
+            name: "fullscreen",
             description: "Toggle the terminal in fullscreen",
             structure: ["boolean"],
+            prefix: "$",
             exec: (args) => {
                 if (args[0] === "true") {
                     termDiv.style.width = "100%";
@@ -118,9 +146,10 @@ let term = {
             }
         },
         {
-            name: "$color",
+            name: "color",
             description: "Change colors of the terminal",
             structure: ["text color", "background color"],
+            prefix: "$",
             exec: (args) => {
                 let $ = (el) => {
                     return document.querySelector(el);
@@ -144,8 +173,9 @@ let term = {
             }
         },
         {
-            name: "$clear",
+            name: "clear",
             description: "Clear the terminal",
+            prefix: "$",
             exec: () => {
                 history.innerHTML = null;
                 return "Terminal cleared.";
@@ -160,9 +190,10 @@ let term = {
             }
         },
         {
-            name: "$set",
+            name: "set",
             description: "Configurate a value of the \"settings\" object",
             structure: ["key", "value"],
+            prefix: "$",
             exec: (args) => {
                 settings[args[0]] = args[1];
 
@@ -172,9 +203,10 @@ let term = {
             }
         },
         {
-            name: "$get",
+            name: "get",
             description: "Get a value of the \"settings\" object",
             structure: ["key"],
+            prefix: "$",
             exec: (args) => {
                 return args[0] + " is set to " + settings[args[0]] + ".";
             }
@@ -194,8 +226,9 @@ let settings = {
     background: "#0f1020",
     color: "#f5f5f5",
     prefix: "$ ",
+    cmdPrefix: true,
     name: "user",
-    hostname: navigator.appCodeName.toLowerCase(),
+    hostname: (navigator.userAgentData.brands[0].brand || navigator.appCodeName).toLowerCase(),
     inputPrefix: function () {
         return this.name + "@" + this.hostname + ": " + this.prefix;
     }
@@ -396,7 +429,7 @@ showCmdInTerm("echo", "Welcome to the term, " + settings.name + ". Type \"help\"
             let args = hash[i];
             let cmd = args[0];
             args.shift();
-            
+
             showCmdInTerm(cmd, ...args);
         }
     }
